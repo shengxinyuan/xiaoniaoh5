@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>钻石小鸟钻戒大师</title>
+
+    <script type="text/javascript" src="./polyfill.js?v=2"></script>
+    <script src="./axios.js"></script>
+    <script type="text/javascript" src="./common.v1.js?v=2"></script>
+    <style type="text/css">
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: #fff;
+        }
+
+        iframe {
+            flex: 1;
+            border: none;
+        }
+
+        #status-bar {
+            height: 0px;
+        }
+
+        #custom {
+            display: flex;
+            flex: 1;
+        }
+
+        #diamond {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 99;
+            background: #fff;
+            display: none;
+            flex-direction: column;
+        }
+
+        #navbar {
+            height: 50px;
+            background: #f3f3f3;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        #navbar span {
+            padding-right: 15px;
+            font-size: 16px;
+            color: #000000;
+            cursor: pointer;
+        }
+
+        #tools {
+            position: fixed;
+            display: flex;
+            display: none;
+            flex-direction: row;
+            justify-content: space-around;
+            top: 50px;
+            left: 0;
+            right: 0;
+            height: 30px;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="status-bar"></div>
+    <div id="custom">
+        <iframe src="" id="iframe"></iframe>
+    </div>
+    <div id="diamond">
+        <div id="navbar">
+            <span onclick="backCustom()">返回定制</span>
+        </div>
+        <iframe src="" id="select"></iframe>
+    </div>
+
+    <div id="tools">
+        <input type="text" id="url" value="./index.html" /><button onclick="openIframe()">
+            确定
+        </button>
+        <button class="btn" onclick="back()">返回</button>
+    </div>
+
+    <script type="text/javascript">
+        var diamond = document.getElementById("diamond");
+        var customFrame = document.getElementById("iframe");
+        var diamondFrame = document.getElementById("select");
+        document.getElementById("status-bar").style.height =
+            location.get("StatusBar", 0) + "px";
+
+        function init() {
+            Custom.on("ready", function (data) {
+                var categoryId = location.get("categoryId", "");
+                var miniProgram = "";
+                console.log(env);
+                switch (env) {
+                    case "plus":
+                    case "h5":
+                        break;
+                    default:
+                        miniProgram = "true";
+                        break;
+                }
+                getUser().then(function (user) {
+                    // console.log(user);
+                    Custom.fire("startUp", {
+                        token: user.token,
+                        caseId: location.get("design_id", ""), //设计ID
+                        diamondId: location.get("diamond_id", ""), //钻石ID,
+                        shareId: location.get("share_id", ""),
+                        categoryId: categoryId ? parseInt(categoryId) : "",
+                        miniProgram: miniProgram,
+                    });
+                });
+            });
+            // 拉起钻石收藏列表
+            Custom.on("FavoriteDiamonds", function (data) {
+                if (!uni) {
+                    return;
+                }
+                uni.navigateTo({
+                    url:
+                        "/pages/home/diamonds?source=custom&only=" +
+                        (data || ""),
+                });
+            });
+
+            // 拉起方案袋
+            Custom.on("CaseList", function (data) {
+                if (!uni) {
+                    return;
+                }
+                uni.navigateTo({
+                    url: "/pages/home/designs?from=custom" + (data || ""),
+                });
+            });
+
+            // 拉起方案袋
+            Custom.on("SHARECASE", function (data) {
+                if (!uni) {
+                    return;
+                }
+                uni.navigateTo({
+                    url:
+                        "/pages/home/designs?from=custom&case_id=" +
+                        (data || ""),
+                });
+            });
+
+            //拉起全球钻
+            Custom.on("DiamondRequesting", function (data) {
+                if (!uni) {
+                    return;
+                }
+                uni.navigateTo({
+                    url:
+                        "/pages/diamond/index?source=custom&only=" +
+                        (data || ""),
+                });
+            });
+            //选完钻后
+            Main.on("Selected", function (data) {
+                //通知定制已选完钻
+                Custom.fire("DiamondChosen", data);
+            });
+            //选完方案后
+            Main.on("case", function (data) {
+                //通知定制已选完方案
+                console.log(data, `ID`);
+                Custom.fire("caseChosen", data);
+            });
+            //方案袋为空跳转定制台
+            // Main.on("category", function (data) {
+            //     //通知定制已选完方案
+            //     console.log(data, `ID`);
+            //     Custom.fire("cate", data);
+            // });
+            //钻石详情
+            Custom.on("DiamondDetail", function (data) {
+                if (!uni) {
+                    return;
+                }
+                uni.navigateTo({
+                    url: "/pages/diamond/detail?id=" + (data || ""),
+                });
+            });
+            //创建定单
+            Custom.on("CreateOrder", function (data) {
+                if (!uni) {
+                    return;
+                }
+                console.log(data, `什么样式的`);
+                //跳转到下单页面
+                var coupleRing = data.coupleRing;
+                var item_id = "";
+                if (coupleRing && coupleRing.length === 1) {
+                    item_id = coupleRing[0]["id"];
+                    uni.navigateTo({
+                        url:
+                            "/pages/design/checkout?design_id=" +
+                            data.caseId +
+                            "&item_id=" +
+                            item_id +
+                            "&category_id=2&rings=couple",
+                    });
+                } else {
+                    uni.navigateTo({
+                        url:
+                            "/pages/design/checkout?design_id=" +
+                            data.caseId +
+                            "&item_id=" +
+                            item_id,
+                    });
+                }
+
+            });
+            //客服
+            Custom.on("CustomerService", function () {
+                if (!uni) {
+                    return;
+                }
+                uni.navigateTo({
+                    url: "/pages/home/chats",
+                });
+            });
+            //关闭智能定制
+            Custom.on("CLOSE", function (data) {
+                if (!uni) {
+                    return;
+                }
+                uni.redirectTo({
+                    url: "/pages/main/main?tab=index",
+                });
+            });
+            Custom.on("SCROLL", function (data) {
+                window.parent.scroll(0, 0);
+                window.parent.scroll(
+                    0,
+                    window.parent.document.documentElement.clientHeight
+                );
+            });
+            if (isDebug) {
+                // document.getElementById("tools").style.display = "flex";
+                document.getElementById("iframe").src =
+                    "./index.html" + location.search;
+            } else {
+                document.getElementById("iframe").src =
+                    "./index.html" + location.search;
+                // document.getElementById("iframe").src =
+                //     "http://192.168.0.114:4000/";
+            }
+        }
+        // document.addEventListener("UniAppJSBridgeReady", function () {
+        //     console.log("uni", uni);
+        // });
+        // // document.addEventListener("UniAppJSBridgeReady", init);
+        // document.addEventListener("UniAppJSBridgeReady", function () {
+        //     // init();
+        // });
+
+        function getUser() {
+                var user = {};
+                user = {
+                  token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6Ijc4NDE0M2IyNDM3NzA5NDMwMzlkNTBmNzdhNmFjZDE1MjYyM2EwZmUzYjJmNTMwOTY2NzQ3MzQ1OGY4NWJiNTEzN2UyYWUyM2EzYmMzYzQyIn0.eyJhdWQiOiIxIiwianRpIjoiNzg0MTQzYjI0Mzc3MDk0MzAzOWQ1MGY3N2E2YWNkMTUyNjIzYTBmZTNiMmY1MzA5NjY3NDczNDU4Zjg1YmI1MTM3ZTJhZTIzYTNiYzNjNDIiLCJpYXQiOjE2MDYyMTg2MTQsIm5iZiI6MTYwNjIxODYxNCwiZXhwIjoxNjM3NzU0NjE0LCJzdWIiOiI0OTUxOCIsInNjb3BlcyI6W119.MrlPYXeTGT-z-PhD_tvaTS2p66KxEELhUt_wh9ooWmlJQlKdBBDFKtnShKGig1JD60DPgUz9rglla4U9Ljbq21NZB8kJSAf_OUITOW_w1E2EqtUW-yuctbYDOmLYNjQKSNYDV63m95Lumn2PohT50_ttZw0jNWD5D8RZ_v02soykAPbnr8z8U8-dzt19xJoCly2Esms9xOiGMWOQ1LlfeN6Rn47ymdskvPIRiN4mIxj4772LpXR6v4Nmf_XAC68jmagIUII3-18H45svrL_Lzo2bUYWQzANsXSpgs1O37XmBFCTHXfiBAoo637Q4XdJZjdKOfM4HuELpBIQ84rSIRb8RlcYaxnTIAGtIQDVJmTN1B7-bz1i8YMKtAT-3Tn9AH2XIzZth20CAfGTJR0enFyRscB9mhj20cgDd-TE4Yn3jmty0ZATQKUEkiEbU8xfQijqPNDNhoBe2_bBvNeUanFPAZtL4CRb9S1uI1YLg__upnrYPhjC_mqHfppKKTUPvTXOY9q9bLS8D0U5TwD6X9D0ep2Qnoz0BRiUZUL_MnxE2W8VJ8mNsJDSXMPfSH-dmU3V5pgYSjYFbLmUjTOfe2_racGY1ORxQQZbdve2y2_oGyh9XuFitMQugQqEEAOMdHYbtoUEufjNISspk0E1036SfZncDlGIVaKww6QgRrCM'
+                }
+
+                return Promise.resolve(user);
+            
+        }
+
+        function redirect(path) {
+            if (env == "h5" && inWechat) {
+                window.parent.postMessage(
+                    {
+                        action: "close",
+                        data: {
+                            url: path,
+                        },
+                    },
+                    "*"
+                );
+            } else {
+                uni.redirectTo({
+                    url: path,
+                });
+            }
+        }
+
+        function back() {
+            return uni.navigateBack();
+        }
+
+        function backCustom() {
+            //发送选好的数据给iframe
+            customFrame.contentWindow.postMessage(
+                {
+                    action: "DiamondChosen",
+                    data: {},
+                },
+                "*"
+            );
+            diamond.style.display = "none";
+        }
+
+        function openIframe() {
+            var url = document.getElementById("url").value;
+            console.log(url, `拿到啥`);
+            document.getElementById("iframe").src = url; //'./index.html';
+        }
+        // document.addEventListener("UniAppJSBridgeReady", function () {
+        //     console.log("uni", uni);
+        //     init();
+        // });
+        document.addEventListener("DOMContentLoaded", function () {
+            init();
+        });
+    </script>
+</body>
+
+</html>
