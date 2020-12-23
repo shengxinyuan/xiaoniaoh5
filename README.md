@@ -1,29 +1,14 @@
 # xiaoniaoh5
 
-## Project setup
-```
-npm install
-```
+### 开始，启动  (访问localhost:端口/main.html)
 
-### Compiles and hot-reloads for development
+项目启动
 ```
 npm run serve
-```
 
-### Compiles and minifies for production
 ```
-npm run build
+接口服务启动
 ```
+cd server node index.js
 
-### Run your tests
 ```
-npm run test
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
